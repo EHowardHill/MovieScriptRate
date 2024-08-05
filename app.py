@@ -9,50 +9,55 @@ from json import dumps, loads
 from time import sleep
 
 client = Groq(
-    # This is the default and can be omitted
     api_key=os.environ.get("GROQ_API_KEY"),
 )
 
+
 def query(message):
     chat_completion = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": message
-            }
-        ],
+        messages=[{"role": "user", "content": message}],
         model="llama3-8b-8192",
     )
     return chat_completion.choices[0].message.content
 
+movie_name = "Joker"
+
 options = webdriver.FirefoxOptions()
-options.add_argument('--headless')
+options.add_argument("--headless")
 driver = webdriver.Firefox(options=options)
 driver.get("https://imsdb.com/")
 
 searchbox = driver.find_element(By.NAME, "search_query")
-searchbox.send_keys("Joker")
+searchbox.send_keys(movie_name)
 submit = driver.find_element(By.NAME, "submit")
 submit.click()
 
 wait = WebDriverWait(driver, 4)
-wait.until(EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'Search results for')]")))
+wait.until(
+    EC.presence_of_element_located(
+        (By.XPATH, "//*[contains(text(), 'Search results for')]")
+    )
+)
 
 title = driver.find_element(By.XPATH, "//*[contains(text(), 'Search results for')]")
 parent = title.find_element(By.XPATH, "./..")
-first = parent.find_element(By.XPATH, './p')
-link = first.find_element(By.XPATH, './a')
-value = link.get_attribute('href')
+first = parent.find_element(By.XPATH, "./p")
+link = first.find_element(By.XPATH, "./a")
+value = link.get_attribute("href")
 
 # Movie located, grabbing info
 driver.get(value)
-poster = driver.find_element(By.XPATH, "//img[contains(@src, 'https://www.imsdb.com/posters')]").get_attribute('src')
-read = driver.find_element(By.XPATH, "//a[contains(@href, '/scripts/')]").get_attribute('href')
+poster = driver.find_element(
+    By.XPATH, "//img[contains(@src, 'https://www.imsdb.com/posters')]"
+).get_attribute("src")
+read = driver.find_element(By.XPATH, "//a[contains(@href, '/scripts/')]").get_attribute(
+    "href"
+)
 
 # Read script
 driver.get(read)
 td = driver.find_element(By.XPATH, "//td[contains(@class, 'scrtext')]")
-pre = td.find_element(By.XPATH, './pre').get_attribute('innerHTML')
+pre = td.find_element(By.XPATH, "./pre").get_attribute("innerHTML")
 h = markdownify.markdownify(pre, heading_style="ATX").replace("**", "")
 
 print(h)
