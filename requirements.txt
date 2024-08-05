@@ -1,3 +1,4 @@
 selenium
 markdownify
 groq
+openai
