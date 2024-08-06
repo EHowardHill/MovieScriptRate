@@ -1,8 +1,14 @@
 import os
 from groq import Groq
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from webdriver_manager.firefox import GeckoDriverManager
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait  # Import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC  # Import expected_conditions
@@ -14,6 +20,8 @@ import openai
 from flask import Flask, render_template, request
 
 # sudo apt install -y chromium-chromedriver
+
+browser = "Firefox"
 
 app = Flask(__name__)
 
@@ -58,26 +66,40 @@ def query(message, llm_type="chatgpt"):
         return chat_completion.choices[0].message.content
 
 def fetch_script(movie_name):
+    global browser
+
     if True: #try:
         print("- loading IMSDB")
 
-        # Set up Chrome options
-        options = Options()
-        # Uncomment the next line to run in headless mode
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("start-maximized")
-        options.add_argument("disable-infobars")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--remote-debugging-port=9222")
+        driver = None
+        if browser == "Chrome":
 
-        # Set up the Chromium browser
-        options.binary_location = "/usr/bin/chromium-browser"
+            # Set up Chrome options
+            options = ChromeOptions()
+            # Uncomment the next line to run in headless mode
+            options.add_argument("--headless")
+            options.add_argument("--no-sandbox")
+            options.add_argument("start-maximized")
+            options.add_argument("disable-infobars")
+            options.add_argument("--disable-extensions")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--remote-debugging-port=9222")
 
-        # Set up the Chrome driver
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
+            # Set up the Chromium browser
+            options.binary_location = "/usr/bin/chromium"
+
+            # Set up the Chrome driver
+            service = ChromeService(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
+
+        else:
+            options = FirefoxOptions()
+            options.add_argument("--headless")
+            options.binary_location = "/usr/bin/firefox-esr"  # Path to the Firefox binary
+
+            # Set up the Firefox driver
+            service = FirefoxService()
+            driver = webdriver.Firefox(service=service, options=options)
 
         driver.get("https://imsdb.com/")
 
