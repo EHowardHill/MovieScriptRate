@@ -2,7 +2,7 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta film="viewport" content="width=device-width, initial-scale=1" />
     <title>ReelValues</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,23 +57,45 @@
             </div>
         </div>`;
 
-        function search() {
-            $("#loading").show();
-            $("#film-search").hide();
-            $("#film-results").hide();
-            $("#details").empty();
+        let statusInterval;
+        let id;
+        let film;
 
-            let film = $("#query").val();
-            $.post("/reelvalues", { "name": film }, function (response) {
-                $("#loading").hide();
-                $("#film-search").show();
+        function displayStatus() {
+            console.log("Searching for " + id.toString());
+            $.post("/reelvalues", { "route": "status", "id": id, "film": film }, function (response) {
+                console.log(response);
 
                 if (response["success"] == 0) {
+                    $("#loading").hide();
+                    $("#film-search").show();
+
                     alert("Movie not found.");
+                    clearInterval(statusInterval);
+
                 } else if (response["success"] == 2) {
+                    $("#loading").hide();
+                    $("#film-search").show();
+
                     alert("Unknown backend error.");
+                    clearInterval(statusInterval);
+
+                } else if (response["success"] == 3) {
+                    if (response["message"].includes("Error:")) {
+                        alert(response["message"]);
+                        clearInterval(statusInterval);
+                        $("#loading").hide();
+                        $("#film-search").show();
+                    } else {
+                        $("#status-message").text(response["message"]);
+                    }
                 } else {
-                    $("#name").text(response["name"]);
+                    clearInterval(statusInterval);
+
+                    $("#loading").hide();
+                    $("#film-search").show();
+
+                    $("#film").text(response["film"]);
                     $("#poster").attr('src', response["poster"]);
                     $("#score").text(response["score"].toString() + "%");
                     $("#film-results").show();
@@ -85,7 +107,7 @@
                             if (Array.isArray(examples)) {
                                 let temp_examples = examples;
                                 examples = `<ol>`;
-                                temp_examples.forEach(function(item) {
+                                temp_examples.forEach(function (item) {
                                     examples += `<li>` + item + `</li>`;
                                 });
                                 examples += `</ol>`;
@@ -103,6 +125,19 @@
                         }
                     }
                 }
+            });
+        }
+
+        function search() {
+            $("#loading").show();
+            $("#film-search").hide();
+            $("#film-results").hide();
+            $("#details").empty();
+
+            film = $("#query").val();
+            $.post("/reelvalues", { "route": "search", "film": film }, function (response) {
+                id = response["id"];
+                statusInterval = setInterval(function() { displayStatus(); }, 2000);
             });
         }
 
@@ -125,15 +160,15 @@
         <div style="width: 96px;">
             <form action="https://www.paypal.com/donate" method="post" target="_top">
                 <!-- Identify your business so that you can collect the payments. -->
-                <input type="hidden" name="business" value="ethanlikestowritestuff@gmail.com">
+                <input type="hidden" film="business" value="ethanlikestowritestuff@gmail.com">
                 <!-- Specify details about the contribution -->
-                <input type="hidden" name="no_recurring" value="0">
-                <input type="hidden" name="item_name" value="ReelValues">
-                <input type="hidden" name="item_number" value="Donation to keep the lights on ✌️">
-                <input type="hidden" name="amount" value="5.00">
-                <input type="hidden" name="currency_code" value="USD">
+                <input type="hidden" film="no_recurring" value="0">
+                <input type="hidden" film="item_name" value="ReelValues">
+                <input type="hidden" film="item_number" value="Donation to keep the lights on ✌️">
+                <input type="hidden" film="amount" value="5.00">
+                <input type="hidden" film="currency_code" value="USD">
                 <!-- Display the payment button. -->
-                <input type="image" name="submit" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif"
+                <input type="image" film="submit" src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif"
                     alt="Donate">
                 <img alt="" width="1" height="1" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif">
             </form>
@@ -145,10 +180,9 @@
             <img src="{{url_for('static', filename='loading.gif')}}">
             <div>
                 <p>
-                    Please be patient, the review will take a few minutes to generate.
-                </p>
-                <p>
-                    <strong>Reviews are cached, so looking it up again in the future will be instant.</strong>
+                    <strong>
+                        <div id="status-message" class="calistoga-regular"></div>
+                    </strong>
                 </p>
                 <p>
                     <strong>Note:</strong> Reviews are based on scripts sourced from IMSDb.<br>
@@ -163,10 +197,18 @@
             <h1 class="calistoga-regular">Search for a film...</h1>
 
             <div class="input-group mb-3">
-                <input id="query" type="text" class="form-control" placeholder="Film / TV Show Episode Name"
-                    aria-label="Film / TV Show Episode Name" aria-describedby="button-addon2">
+                <input id="query" type="text" class="form-control" placeholder="Film / TV Show Episode film"
+                    aria-label="Film / TV Show Episode film" aria-describedby="button-addon2">
                 <button onclick="search()" class="btn btn-outline-secondary" type="button"
                     id="button-addon2">🔎</button>
+            </div>
+
+            <div>
+                {% for film in sample %}
+                <span style="padding: 12px;">
+                    <a style="color: blue;" onclick="$('#query').val('{{film}}')">{{ film }}</a>
+                </span>
+                {% endfor %}
             </div>
         </center>
     </div>
@@ -179,7 +221,7 @@
                     <div style="display: flex; flex-direction: column; flex: 1;">
                         <div style="flex: 1;"></div>
                         <div>
-                            <h1 id="name" style="text-align: right; margin: 12px;"></h1>
+                            <h1 id="film" style="text-align: right; margin: 12px;"></h1>
                             <h1 id="score" class="calistoga-regular" style="text-align: right; font-weight: bolder;">64%
                             </h1>
                         </div>
