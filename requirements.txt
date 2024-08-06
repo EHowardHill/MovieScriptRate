@@ -2,3 +2,5 @@ selenium
 markdownify
 groq
 openai
+flask
+webdriver_manager
